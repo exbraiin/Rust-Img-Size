@@ -101,15 +101,13 @@ fn jpg_size(bytes: &[u8]) -> (u32, u32) {
 
         if typ == 0xE1 {
             let data = &bytes[ptr..(ptr + len as usize)];
-            let or = get_jpg_orientation(data);
-            orientation = or.or_else(|| Some(orientation)).unwrap();
+            orientation = get_jpg_orientation(data).unwrap_or(orientation);
         } else if typ == 0xC0 || typ == 0xC2 {
             let w = read_u16_be(bytes, ptr + 7) as u32;
             let h = read_u16_be(bytes, ptr + 5) as u32;
-            return if orientation == 6 || orientation == 8 {
-                (h, w)
-            } else {
-                (w, h)
+            return match orientation {
+                6 | 8 => (h, w),
+                _ => (w, h),
             };
         }
         ptr += len as usize;
