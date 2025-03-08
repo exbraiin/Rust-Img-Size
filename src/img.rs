@@ -133,10 +133,9 @@ fn webp_size(bytes: &[u8]) -> (u32, u32) {
     const VP8L: [u8; 4] = [0x56, 0x50, 0x38, 0x4C];
     let is_lossless_format = bytes[12..16] == VP8L;
     if is_lossless_format {
-        let buffer = &bytes[0x15..0x19].to_vec();
-        let value = read_u32_le(buffer, 0);
-        let w = (value & 0x3FFF) + 1;
-        let h = ((value >> 14) & 0x3FFF) + 1;
+        let b = read_u32_le(bytes, 0x15);
+        let w = (b & 0x3FFF) + 1;
+        let h = ((b >> 14) & 0x3FFF) + 1;
         return (w, h);
     }
 
