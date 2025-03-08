@@ -1,6 +1,6 @@
 # Rust Img Size
 
-This is my first connection with rust, an reimplementation of a previous lib I wrote in dart.
+This is my first rust experience and a reimplementation of a previous lib I wrote in dart.
 
 - `get_img_size(bytes: &[u8]) -> (u32, u32)` 
     - Returns the image size based on given byte array.
