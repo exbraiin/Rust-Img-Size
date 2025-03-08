@@ -1,3 +1,13 @@
+macro_rules! match_signature {
+    ($bytes:expr, $src:expr) => {{
+        $bytes[..$src.len()] == $src
+    }};
+    ($bytes:expr, $src:expr, $dst:expr) => {{
+        let end = $bytes.len() - $dst.len();
+        $bytes[..$src.len()] == $src && $bytes[end..] == $dst
+    }};
+}
+
 pub fn get_img_size(bytes: &[u8]) -> (u32, u32) {
     if png_check(bytes) {
         return png_size(bytes);
@@ -39,8 +49,7 @@ pub fn get_img_type(bytes: &[u8]) -> &str {
 fn png_check(bytes: &[u8]) -> bool {
     const SRC: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
     const DST: [u8; 8] = [0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
-    let (src, end) = (SRC.len(), bytes.len() - DST.len());
-    bytes[..src] == SRC && bytes[end..] == DST
+    match_signature!(bytes, SRC, DST)
 }
 
 fn png_size(bytes: &[u8]) -> (u32, u32) {
@@ -51,8 +60,7 @@ fn png_size(bytes: &[u8]) -> (u32, u32) {
 
 fn bmp_check(bytes: &[u8]) -> bool {
     const SRC: [u8; 2] = [0x42, 0x4D];
-    let src = SRC.len();
-    bytes[..src] == SRC
+    match_signature!(bytes, SRC)
 }
 
 fn bmp_size(bytes: &[u8]) -> (u32, u32) {
@@ -65,8 +73,7 @@ fn gif_check(bytes: &[u8]) -> bool {
     const SRC89A: [u8; 6] = [0x47, 0x49, 0x46, 0x38, 0x37, 0x61];
     const SRC87A: [u8; 6] = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61];
     const DST: [u8; 1] = [0x3B];
-    let (src87, src89, end) = (SRC87A.len(), SRC89A.len(), bytes.len() - DST.len());
-    bytes[end..] == DST && (bytes[..src87] == SRC87A || bytes[..src89] == SRC89A)
+    match_signature!(bytes, SRC87A, DST) || match_signature!(bytes, SRC89A, DST)
 }
 
 fn gif_size(bytes: &[u8]) -> (u32, u32) {
@@ -77,8 +84,7 @@ fn gif_size(bytes: &[u8]) -> (u32, u32) {
 
 fn jpg_check(bytes: &[u8]) -> bool {
     const SRC: [u8; 2] = [0xFF, 0xD8];
-    let src = SRC.len();
-    bytes[..src] == SRC
+    match_signature!(bytes, SRC)
 }
 
 fn jpg_size(bytes: &[u8]) -> (u32, u32) {
@@ -96,9 +102,7 @@ fn jpg_size(bytes: &[u8]) -> (u32, u32) {
         if typ == 0xE1 {
             let data = &bytes[ptr..(ptr + len as usize)];
             let or = get_jpg_orientation(data);
-            if or.is_some() {
-                orientation = or.unwrap();
-            }
+            orientation = or.or_else(|| Some(orientation)).unwrap();
         }
 
         if typ == 0xC0 || typ == 0xC2 {
@@ -109,9 +113,8 @@ fn jpg_size(bytes: &[u8]) -> (u32, u32) {
             } else {
                 (w, h)
             };
-        } else {
-            ptr += len as usize;
         }
+        ptr += len as usize;
     }
     (0, 0)
 }
@@ -119,8 +122,7 @@ fn jpg_size(bytes: &[u8]) -> (u32, u32) {
 fn webp_check(bytes: &[u8]) -> bool {
     const SRC: [u8; 4] = [0x52, 0x49, 0x46, 0x46];
     const DST: [u8; 4] = [0x57, 0x45, 0x42, 0x50];
-    let src = SRC.len();
-    bytes[..src] == SRC && bytes[8..12] == DST
+    match_signature!(bytes[..12], SRC, DST)
 }
 
 fn webp_size(bytes: &[u8]) -> (u32, u32) {
